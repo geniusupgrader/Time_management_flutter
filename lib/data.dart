@@ -15,26 +15,12 @@ class BackendService {
     print(cities2);
     print(cities2.runtimeType);
 
-    // var strings = cities2.Cast<String>().ToList();
     var strings = List<String>.from(cities2);
     print(strings);
     print(strings.runtimeType);
 
-    // print(cities2);
-    // var cities3 = cities2.toString();
-
-    // List<String> matches = List();
-    // matches.addAll(cities);
-
     strings.retainWhere((s) => s.toLowerCase().contains(query.toLowerCase()));
-
     return strings;
-
-// return ["hallo", "tag", "auch"];
-
-    // return List.generate(3, (index) {
-    //   return {'name': query + index.toString(), 'price': Random().nextInt(100)};
-    // });
   }
 }
 
