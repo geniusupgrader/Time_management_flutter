@@ -1,7 +1,8 @@
 import 'dart:convert';
+import 'dart:developer';
 import 'package:http/http.dart' as http;
 
-Future getTimesheetDocument(String timesheetDocument) async {
+Future getSpecificTimesheetDocument(String timesheetDocument) async {
   Map<String, String> tokenautentication = {
     'Authorization': "token d7ab76ea1eeda3d:1605c9b72447646"
   };
@@ -9,14 +10,59 @@ Future getTimesheetDocument(String timesheetDocument) async {
       'https://erpnext.roros.duckdns.org/api/resource/Timesheet/' +
           timesheetDocument,
       headers: tokenautentication);
-  var res = jsonDecode(respond.body);
-
-  print(res);
-  // print('howdy, ${res['data']['name']}');
-  // var dtrn = res['data']['name'];
+  Map<String, dynamic> res = jsonDecode(respond.body);
   return res;
 }
 
+Future getRunningTimesheetsAsNameList() async {
+  // assuming every timesheet has exactly one entry in time_logs table
+  // List all Timesheets which have are in Draft state
+
+  Map<String, String> tokenautentication = {
+    'Authorization': "token d7ab76ea1eeda3d:1605c9b72447646"
+  };
+
+  var stringi = """?filters=[["status", "=", "Draft"]]""";
+
+  var respond = await http.get(
+      'https://erpnext.roros.duckdns.org/api/resource/Timesheet' + stringi,
+      headers: tokenautentication);
+
+  Map<String, dynamic> res = jsonDecode(respond.body);
+  var res2 = res['data'];
+
+// now filter where first table has to_time
+  var aslist = [];
+
+  for (var i = 0; i < res2.length; i++) {
+    // print(res2[i]['name']);
+    var doc = await getSpecificTimesheetDocument(res2[i]['name']);
+    // check if doc has 'to_time' field (in first row of time_logs):
+    // print(doc['data']['time_logs'][0].containsKey('to_time'));
+    if (doc['data']['time_logs'][0].containsKey('to_time')) {
+      // if yes, then it was already finished
+    } else {
+      // if no, then add the name to the list RunningTimesheets
+      aslist.add(res2[i]['name']);
+    }
+  }
+  // print("from getRunningTimesheetsAsList");
+  // print(aslist.toString());
+
+  return aslist;
+}
+
+Future getRunningTimesheetDocuments() async {
+  List nan = await getRunningTimesheetsAsNameList();
+
+  List uiae = [];
+
+  for (var i = 0; i < nan.length; i++) {
+    var doc = await getSpecificTimesheetDocument(nan[i]);
+    uiae.add(doc);
+  }
+  return uiae;
+}
 
 Future getActivities() async {
   Map<String, String> tokenautentication = {
@@ -28,7 +74,7 @@ Future getActivities() async {
   var res = jsonDecode(respond.body);
   res = res['data'];
   var aslist = [];
-  for (var i=0; i < res.length; i++){
+  for (var i = 0; i < res.length; i++) {
     // print(res[i]['name']);
     aslist.add(res[i]['name']);
   }
@@ -41,13 +87,12 @@ Future createTimesheet(String activityName) async {
     'Authorization': "token d7ab76ea1eeda3d:1605c9b72447646"
   };
   var now = new DateTime.now();
-  // print(now);
 
   var postrequestString = {
     'time_logs': [
       {'activity_type': activityName, 'from_time': now.toString()},
-      // {'activity_type': activityName, 'from_time': '2021-01-02 10:20:02.0'},
-    ]
+    ],
+    'employee': 'HR-EMP-00001'
   };
   var postrequestJson = jsonEncode(postrequestString);
   var respond = await http.post(
@@ -56,9 +101,6 @@ Future createTimesheet(String activityName) async {
       body: postrequestJson);
   var res = jsonDecode(respond.body);
 
-  // print(respond.statusCode);
-  // print(respond.reasonPhrase);
-  // print(res);
   return res;
 }
 
@@ -66,21 +108,29 @@ Future stopTimesheet(String timesheetname) async {
   Map<String, String> tokenautentication = {
     'Authorization': "token d7ab76ea1eeda3d:1605c9b72447646"
   };
-  var now = new DateTime.now();
 
-  var postrequestString = {
-    'time_logs': [
-      {'to_time': now.toString()}
-    ]
-  };
-  var postrequestJson = jsonEncode(postrequestString);
+  // first get the time_logs table:
+  var timesheetdoc = await getSpecificTimesheetDocument(timesheetname);
+  // print(timesheetdoc);
+  var now = new DateTime.now().toString();
+  // print("timesheetdoc");
+  // print(timesheetdoc);
+  timesheetdoc['data']['time_logs'][0]['to_time'] = now;
+  // print("New timesheetdoc");
+  // print(timesheetdoc);
+  // log(timesheetdoc.toString());
+
+  var postrequestJson2 = jsonEncode(timesheetdoc['data']);
+  // print("postrequestJson2");
+  // log(postrequestJson2.toString());
   var respond = await http.put(
       'https://erpnext.roros.duckdns.org/api/resource/Timesheet/' +
           timesheetname,
       headers: tokenautentication,
-      body: postrequestJson);
+      body: postrequestJson2);
   var res = jsonDecode(respond.body);
-  print(res);
-  // print(respond.reasonPhrase);
+  // print(res);
+  // print("res");
+  // log(res.toString());
   return res;
 }
