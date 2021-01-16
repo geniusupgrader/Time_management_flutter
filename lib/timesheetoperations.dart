@@ -14,6 +14,49 @@ Future getSpecificTimesheetDocument(String timesheetDocument) async {
   return res;
 }
 
+
+
+Future getAllRunningTimesheetDocumentfromActivity(activity) async {
+  // assuming every timesheet has exactly one entry in time_logs table
+  // List all Timesheets which have are in Draft state
+
+  Map<String, String> tokenautentication = {
+    'Authorization': "token d7ab76ea1eeda3d:1605c9b72447646"
+  };
+
+  var stringi = """?filters=[["status", "=", "Draft"]]""";
+
+  var respond = await http.get(
+      'https://erpnext.roros.duckdns.org/api/resource/Timesheet' + stringi,
+      headers: tokenautentication);
+
+  Map<String, dynamic> res = jsonDecode(respond.body);
+  var res2 = res['data'];
+
+// now filter where first table has to_time
+  var aslist = [];
+
+  for (var i = 0; i < res2.length; i++) {
+    // print(res2[i]['name']);
+    var doc = await getSpecificTimesheetDocument(res2[i]['name']);
+    // check if doc has 'to_time' field (in first row of time_logs):
+    // print(doc['data']['time_logs'][0].containsKey('to_time'));
+    // print(doc);
+    if (doc['data']['time_logs'][0].containsKey('to_time')) {
+      // if yes, then it was already finished
+    } else {
+      // if no, then check if the activity machtes
+      if (doc['data']['time_logs'][0]['activity_type'] == activity) {
+      // then add the name to the list RunningTimesheets
+      aslist.add(res2[i]['name']);
+    }
+  }
+}
+  return aslist;
+}
+
+
+
 Future getRunningTimesheetsAsNameList() async {
   // assuming every timesheet has exactly one entry in time_logs table
   // List all Timesheets which have are in Draft state

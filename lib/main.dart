@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:time/widgets.dart' as wid;
-import 'package:time/timesheetoperations.dart' as tsop;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
@@ -31,6 +30,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Flutter Demo',
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
         primarySwatch: Colors.orange,
         visualDensity: VisualDensity.adaptivePlatformDensity,
@@ -48,94 +48,96 @@ class DefaultTabControllerWithAppbar extends StatelessWidget {
       length: 3,
       child: Scaffold(
           appBar: AppBar(
-            title: Text("Tabs dtrn"),
+            title: Text("TimeSheet"),
             bottom: TabBar(tabs: [
               Tab(text: 'Control Timesheet'),
-              Tab(text: 'Active Timers'),
-              Tab(text: 'Old')
+              // Tab(text: 'Active Timers'),
+              Tab(text: 'Activities'),
+              Tab(text: 'test'),
+              // Tab(text: 'Old')
             ]),
           ),
           body: TabBarView(children: [
             wid.MyCustomForm(),
-            wid.VeryGoodList(),
-            MyHomePage( title: "hallo", ),
+            // wid.VeryGoodList(),
+            wid.ActivityList(),
+            MyApp2(),
+            // wid.ListSearch(),
+            // MyHomePage( title: "hallo", ),
             // wid.firsttryfuture(),
           ])),
     );
   }
 }
 
-// -------------------- Old Application --------------------------
-
-class MyHomePage extends StatefulWidget {
-  MyHomePage({Key key, this.title}) : super(key: key);
-
-  final String title;
-  @override
-  _MyHomePageState createState() => _MyHomePageState();
-}
-
-class _MyHomePageState extends State<MyHomePage> {
 
 
 
+
+
+
+
+class MyApp2 extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.start,
+    return MaterialApp(
+      home: Scaffold(
+        body: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: <Widget>[
-            wid.MyCustomForm(),
-            // wid.firsttryfuture(),
+            MyListTile(title: 'First'),
+            MyListTile(title: 'Second'),
+            MyListTile(title: 'Third'),
           ],
         ),
       ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      floatingActionButton:
-          Row(mainAxisAlignment: MainAxisAlignment.center, children: <Widget>[
-        FloatingActionButton(
-          child: Icon(Icons.star),
-          onPressed: () {
-            // getTimesheetDocument();
-          },
-          heroTag: null,
-        ),
-        SizedBox(
-          width: 10,
-        ),
-        FloatingActionButton(
-          child: Icon(Icons.ac_unit),
-          onPressed: () {
-            // getTimesheetDocument();
-          },
-          heroTag: null,
-        ),
-        SizedBox(
-          width: 10,
-        ),
-        FloatingActionButton(
-          child: Icon(Icons.games),
-          onPressed: () {
-            // getTimesheetDocument();
-          },
-          heroTag: null,
-        ),
-        SizedBox(
-          width: 10,
-        ),
-        FloatingActionButton(
-          child: Icon(Icons.accessibility),
-          onPressed: () {
-            // makeAlarm();
-          },
-          heroTag: null,
-        ),
-        SizedBox(
-          width: 10,
-        ),
-      ]),
     );
   }
 }
-// -------------------- Old Application --------------------------
+
+class MyListTile extends StatefulWidget {
+  final String title;
+
+  MyListTile({this.title});
+
+  @override
+  _MyListTileState createState() => _MyListTileState();
+}
+
+class _MyListTileState extends State<MyListTile> {
+  int status = 0;
+
+  get tileColor {
+    switch(status) {
+      case 0: {
+        return Colors.white;
+      }
+      case 1: {
+        return Colors.green;
+      }
+      default: {
+        return Colors.red;
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: tileColor,
+      child: ListTile(
+        title: Text(widget.title),
+        subtitle: Text('Status: $status'),
+        onTap: () => setState(() {
+          status++;
+        }),
+      ),
+    );
+  }
+}
+
+
+
+
+

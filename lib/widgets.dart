@@ -1,22 +1,15 @@
+// import 'dart:html';
+
 import 'package:flutter/material.dart';
 import 'package:time/main.dart';
-
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'dart:developer';
-import 'dart:convert';
-import 'package:time/timesheetoperations.dart' as tsop;
 import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:time/timesheetoperations.dart' as tsop;
 import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'package:time/data.dart';
 
-// getthing() async {
-//   var data = await tsop.getActivities();
-//   return data;
-// }
-
-
-  var numberOfTimers = 0;
-
+var numberOfTimers = 0;
 
 class MyCustomForm extends StatefulWidget {
   @override
@@ -53,97 +46,128 @@ class MyCustomFormState extends State<MyCustomForm> {
   @override
   Widget build(BuildContext context) {
     // Build a Form widget using the _formKey created above.
-    return Form(
-      key: _formKey,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          TypeAheadFormField(
-            textFieldConfiguration: TextFieldConfiguration(
-              decoration: InputDecoration(labelText: 'Activity'),
-              controller: this._typeAheadController,
+    return Scaffold(
+      body: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            TypeAheadFormField(
+              textFieldConfiguration: TextFieldConfiguration(
+                decoration: InputDecoration(labelText: 'Activity'),
+                controller: this._typeAheadController,
+              ),
+              suggestionsCallback: (pattern) async {
+                return await BackendService.getSuggestions(pattern);
+              },
+              itemBuilder: (context, suggestion) {
+                return ListTile(
+                  title: Text(suggestion),
+                );
+              },
+              transitionBuilder: (context, suggestionsBox, controller) {
+                return suggestionsBox;
+              },
+              onSuggestionSelected: (suggestion) {
+                this._typeAheadController.text = suggestion;
+              },
+              validator: (value) {
+                if (value.isEmpty) {
+                  return 'Please select an Activity';
+                } else {
+                  return null;
+                }
+              },
+              onSaved: (value) => _selectedCity = value,
             ),
-            suggestionsCallback: (pattern) async {
-              return await BackendService.getSuggestions(pattern);
-            },
-            itemBuilder: (context, suggestion) {
-              return ListTile(
-                title: Text(suggestion),
-              );
-            },
-            transitionBuilder: (context, suggestionsBox, controller) {
-              return suggestionsBox;
-            },
-            onSuggestionSelected: (suggestion) {
-              this._typeAheadController.text = suggestion;
-            },
-            validator: (value) {
-              if (value.isEmpty) {
-                return 'Please select an Activity';
-              } else {
-                return null;
-              }
+            ElevatedButton(
+              child: Text('Create'),
+              onPressed: () async {
+                if (_formKey.currentState.validate()) {
+                  var res =
+                      await tsop.createTimesheet(_typeAheadController.text);
+                  mrTimesheet = res['data']['name'];
+                  // print(res);
+                  var activityname =
+                      res['data']['time_logs'][0]['activity_type'];
 
-              // List data;
-              // getthing() async {
-              //   data = await tsop.getActivities();
-              //   // print(data);
-              //   var activitieslist = List<dynamic>.from(data);
-              //   print(activitieslist.contains(value));
-
-              //   if (value.isEmpty) {
-              //     return 'Please select an Activity';
-              //   } else if (!(activitieslist.contains(value))) {
-              //     print("hallo");
-              //     return 'Please select existing Activity';
-              //   } else {
-              //     return null;
-              //   }
-              // }
-              // getthing();
-            },
-            onSaved: (value) => _selectedCity = value,
-          ),
-          ElevatedButton(
-            child: Text('Create'),
-            onPressed: () async {
-              if (_formKey.currentState.validate()) {
-                var res = await tsop.createTimesheet(_typeAheadController.text);
-                mrTimesheet = res['data']['name'];
-                // print(res);
-                var activityname = res['data']['time_logs'][0]['activity_type'];
-                                
-                makeAlarm(numberOfTimers, activityname, mrTimesheet);
-                print(numberOfTimers);
-                numberOfTimers++;
-              }
-            },
-          ),
-          ElevatedButton(
-            child: Text('Get'),
-            onPressed: () async {
-              var result = await tsop.getSpecificTimesheetDocument(mrTimesheet);
-              // print(result);
-            },
-          ),
-          ElevatedButton(
-            child: Text('Stop'),
-            onPressed: () {
-              // print(mrTimesheet);
-              tsop.stopTimesheet(mrTimesheet);
-            },
-          ),
-          ElevatedButton(
-            child: Text('Get Running'),
-            onPressed: () {
-              // print(mrTimesheet);
-              tsop.getRunningTimesheetsAsNameList();
-            },
-          ),
-          // firsttryfuture()
-          // Text(),
-        ],
+                  makeAlarm(numberOfTimers, activityname, mrTimesheet);
+                  print(numberOfTimers);
+                  numberOfTimers++;
+                }
+              },
+            ),
+            ElevatedButton(
+              child: Text('Get'),
+              onPressed: () async {
+                var result =
+                    await tsop.getSpecificTimesheetDocument(mrTimesheet);
+                // print(result);
+              },
+            ),
+            ElevatedButton(
+              child: Text('Stop'),
+              onPressed: () {
+                // print(mrTimesheet);
+                tsop.stopTimesheet(mrTimesheet);
+              },
+            ),
+            ElevatedButton(
+              child: Text('Get Running'),
+              onPressed: () {
+                // print(mrTimesheet);
+                tsop.getRunningTimesheetsAsNameList();
+              },
+            ),
+            // firsttryfuture()
+            // Text(),
+          ],
+        ),
       ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      floatingActionButton:
+          Row(mainAxisAlignment: MainAxisAlignment.center, children: <Widget>[
+        FloatingActionButton(
+          child: Icon(Icons.star),
+          onPressed: () {
+            // getTimesheetDocument();
+          },
+          heroTag: null,
+        ),
+        SizedBox(
+          width: 10,
+        ),
+        FloatingActionButton(
+          child: Icon(Icons.ac_unit),
+          onPressed: () {
+            // getTimesheetDocument();
+          },
+          heroTag: null,
+        ),
+        SizedBox(
+          width: 10,
+        ),
+        FloatingActionButton(
+          child: Icon(Icons.games),
+          onPressed: () {
+            // getTimesheetDocument();
+          },
+          heroTag: null,
+        ),
+        SizedBox(
+          width: 10,
+        ),
+        FloatingActionButton(
+          child: Icon(Icons.accessibility),
+          onPressed: () {
+            // makeAlarm();
+          },
+          heroTag: null,
+        ),
+        SizedBox(
+          width: 10,
+        ),
+      ]),
     );
   }
 }
@@ -206,6 +230,7 @@ class VeryGoodListState extends State<VeryGoodList> {
 
   @override
   void initState() {
+    super.initState();
     this.getthing();
   }
 
@@ -221,7 +246,7 @@ class VeryGoodListState extends State<VeryGoodList> {
             subtitle: Text(data[index]['data']['name']),
             isThreeLine: true,
             dense: true,
-            onLongPress: () async{
+            onLongPress: () async {
               // print(data[index]['data']['name']);
               tsop.stopTimesheet(data[index]['data']['name']);
               await flutterLocalNotificationsPlugin.cancel(index);
@@ -232,5 +257,158 @@ class VeryGoodListState extends State<VeryGoodList> {
         },
       ),
     );
+  }
+}
+
+class ActivityList extends StatefulWidget {
+  @override
+  ActivityListState createState() => new ActivityListState();
+}
+
+class ActivityListState extends State<ActivityList> {
+  // List data;
+  List<String> filteredList;
+  List<String> fulllist;
+
+  bool started = false;
+  bool runningtimesheet = false;
+
+  Future _myfutur;
+  // Future _myfutur2;
+
+  int indexdefault = 0;
+  String activitydefault = "0";
+
+  void togglebutton(runningtimesheet) {
+    runningtimesheet = !runningtimesheet;
+  }
+
+  final TextEditingController controller = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    started = true;
+    _myfutur = getActivitiesfuture();
+    // _myfutur2 = getRunningTimesheetfuture(indexdefault, activitydefault);
+  }
+
+  getActivitiesfuture() async {
+    var data2 = await tsop.getActivities();
+    fulllist = List.from(data2);
+    return fulllist;
+  }
+
+  getRunningTimesheetfuture(index, activity) async {
+    List data = await tsop.getAllRunningTimesheetDocumentfromActivity(activity);
+    return data;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder(
+        future: _myfutur,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.done) {
+            return new Scaffold(
+              body: new Column(
+                children: <Widget>[
+                  new TextField(
+                    controller: controller,
+                    // onSubmitted: (text) {
+                    //   fulllist.add("neger");
+                    //   controller.clear();
+                    //   setState(() {});
+                    // },
+                    onChanged: onItemChanged,
+                  ),
+                  new Expanded(
+                    child: new ListView.builder(
+                      itemCount: filteredList == null ? 0 : filteredList.length,
+                      itemBuilder: (BuildContext context, int index) =>
+                          buildbody(context, index, filteredList),
+                    ),
+                  )
+                ],
+              ),
+            );
+          } else {
+            return CircularProgressIndicator();
+          }
+        });
+  }
+
+  onItemChanged(String value) async {
+    setState(() {
+      filteredList = fulllist
+          .where((string) => string.toLowerCase().contains(value.toLowerCase()))
+          .toList();
+    });
+  }
+
+  Widget getButton(runningtimesheet, timesheet, activity) {
+    if (runningtimesheet) {
+      return IconButton(
+        icon: Icon(Icons.play_circle_outline),
+        color: Colors.green,
+        iconSize: 50,
+        tooltip: 'StartTimer',
+        onPressed: () {
+          setState(() {
+            tsop.stopTimesheet(timesheet[0]);
+            runningtimesheet = false;
+          });
+        },
+      );
+    } else {
+      return IconButton(
+        icon: Icon(Icons.play_circle_outline),
+        // color: Colors.green,
+        iconSize: 50,
+        tooltip: 'StartTimer',
+        onPressed: () async{
+          await tsop.createTimesheet(activity);
+          setState(() {
+            runningtimesheet = true;
+          });
+        },
+      );
+    }
+  }
+
+  Widget buildbody(BuildContext ctxt, int index, filteredlist) {
+    return FutureBuilder(
+        future: getRunningTimesheetfuture(index, filteredlist[index]),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.done) {
+            if (snapshot.hasData) {
+              if (snapshot.data.isEmpty) {
+                runningtimesheet = false;
+              } else {
+                runningtimesheet = true;
+              }
+            }
+            return new Card(
+                child: new ListTile(
+              title: Text(filteredList[index].toString()),
+              subtitle: Text(runningtimesheet.toString()),
+              isThreeLine: true,
+              dense: true,
+              trailing: Row(mainAxisSize: MainAxisSize.min, children: <Widget>[
+                getButton(runningtimesheet, snapshot.data, filteredlist[index])
+              ]),
+              onTap: () {},
+              // onLongPress: () async {
+              //   // print(data[index]['data']['name']);
+              //   tsop.stopTimesheet(data[index]['data']['name']);
+              //   await flutterLocalNotificationsPlugin.cancel(index);
+              //   print(index);
+              //   numberOfTimers--;
+              // },
+            ));
+          } else {
+            return CircularProgressIndicator();
+          }
+        });
   }
 }
