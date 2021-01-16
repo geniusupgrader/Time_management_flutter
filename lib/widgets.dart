@@ -1,264 +1,7 @@
-// import 'dart:html';
-
 import 'package:flutter/material.dart';
 import 'package:time/main.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:time/timesheetoperations.dart' as tsop;
-import 'package:flutter_typeahead/flutter_typeahead.dart';
-import 'package:time/data.dart';
-
-var numberOfTimers = 0;
-
-class MyCustomForm extends StatefulWidget {
-  @override
-  MyCustomFormState createState() {
-    return MyCustomFormState();
-  }
-}
-
-class MyCustomFormState extends State<MyCustomForm> {
-  final _formKey = GlobalKey<FormState>();
-  final TextEditingController _typeAheadController = TextEditingController();
-
-  String _selectedCity;
-  var mrTimesheet;
-
-  void makeAlarm(int alarmnumber, String activitytype, String docname) async {
-    const androidPlatformChannelSpecifics = AndroidNotificationDetails(
-        'your channel id', 'your channel name', 'your channel description',
-        icon: 'ic_stat_name',
-        playSound: false,
-        priority: Priority.high,
-        importance: Importance.max,
-        ongoing: true,
-        autoCancel: false);
-
-    const platformChannelSpecifics =
-        NotificationDetails(android: androidPlatformChannelSpecifics);
-
-    await flutterLocalNotificationsPlugin.show(
-        alarmnumber, activitytype, docname, platformChannelSpecifics,
-        payload: 'this is the payload');
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    // Build a Form widget using the _formKey created above.
-    return Scaffold(
-      body: Form(
-        key: _formKey,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            TypeAheadFormField(
-              textFieldConfiguration: TextFieldConfiguration(
-                decoration: InputDecoration(labelText: 'Activity'),
-                controller: this._typeAheadController,
-              ),
-              suggestionsCallback: (pattern) async {
-                return await BackendService.getSuggestions(pattern);
-              },
-              itemBuilder: (context, suggestion) {
-                return ListTile(
-                  title: Text(suggestion),
-                );
-              },
-              transitionBuilder: (context, suggestionsBox, controller) {
-                return suggestionsBox;
-              },
-              onSuggestionSelected: (suggestion) {
-                this._typeAheadController.text = suggestion;
-              },
-              validator: (value) {
-                if (value.isEmpty) {
-                  return 'Please select an Activity';
-                } else {
-                  return null;
-                }
-              },
-              onSaved: (value) => _selectedCity = value,
-            ),
-            ElevatedButton(
-              child: Text('Create'),
-              onPressed: () async {
-                if (_formKey.currentState.validate()) {
-                  var res =
-                      await tsop.createTimesheet(_typeAheadController.text);
-                  mrTimesheet = res['data']['name'];
-                  // print(res);
-                  var activityname =
-                      res['data']['time_logs'][0]['activity_type'];
-
-                  makeAlarm(numberOfTimers, activityname, mrTimesheet);
-                  print(numberOfTimers);
-                  numberOfTimers++;
-                }
-              },
-            ),
-            ElevatedButton(
-              child: Text('Get'),
-              onPressed: () async {
-                var result =
-                    await tsop.getSpecificTimesheetDocument(mrTimesheet);
-                // print(result);
-              },
-            ),
-            ElevatedButton(
-              child: Text('Stop'),
-              onPressed: () {
-                // print(mrTimesheet);
-                tsop.stopTimesheet(mrTimesheet);
-              },
-            ),
-            ElevatedButton(
-              child: Text('Get Running'),
-              onPressed: () {
-                // print(mrTimesheet);
-                tsop.getRunningTimesheetsAsNameList();
-              },
-            ),
-            // firsttryfuture()
-            // Text(),
-          ],
-        ),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      floatingActionButton:
-          Row(mainAxisAlignment: MainAxisAlignment.center, children: <Widget>[
-        FloatingActionButton(
-          child: Icon(Icons.star),
-          onPressed: () {
-            // getTimesheetDocument();
-          },
-          heroTag: null,
-        ),
-        SizedBox(
-          width: 10,
-        ),
-        FloatingActionButton(
-          child: Icon(Icons.ac_unit),
-          onPressed: () {
-            // getTimesheetDocument();
-          },
-          heroTag: null,
-        ),
-        SizedBox(
-          width: 10,
-        ),
-        FloatingActionButton(
-          child: Icon(Icons.games),
-          onPressed: () {
-            // getTimesheetDocument();
-          },
-          heroTag: null,
-        ),
-        SizedBox(
-          width: 10,
-        ),
-        FloatingActionButton(
-          child: Icon(Icons.accessibility),
-          onPressed: () {
-            // makeAlarm();
-          },
-          heroTag: null,
-        ),
-        SizedBox(
-          width: 10,
-        ),
-      ]),
-    );
-  }
-}
-
-FutureBuilder firsttryfuture() {
-  return (FutureBuilder(
-    future: tsop.getSpecificTimesheetDocument("TS-2020-00117"),
-    builder: (context, snapshot) {
-      if (snapshot.hasData) {
-        return Text(snapshot.data['data']['time_logs'][0].toString());
-      } else if (snapshot.hasError) {
-        return Text("${snapshot.error}");
-      }
-      return CircularProgressIndicator();
-    },
-  ));
-}
-
-class ListViews extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: ListView(
-        children: <Widget>[
-          ListTile(
-            leading: Icon(Icons.map),
-            title: Text('Map'),
-          ),
-          ListTile(
-            leading: Icon(Icons.photo_album),
-            title: Text('Album'),
-          ),
-          ListTile(
-            leading: Icon(Icons.phone),
-            title: Text('Phone'),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class VeryGoodList extends StatefulWidget {
-  @override
-  VeryGoodListState createState() => new VeryGoodListState();
-}
-
-class VeryGoodListState extends State<VeryGoodList> {
-  List data;
-
-  // calcdauer() {}
-
-  getthing() async {
-    var data2 = await tsop.getRunningTimesheetDocuments();
-    this.setState(() {
-      data = data2;
-    });
-    return "Success!";
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    this.getthing();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return new Scaffold(
-      body: new ListView.builder(
-        itemCount: data == null ? 0 : data.length,
-        itemBuilder: (BuildContext context, int index) {
-          return new Card(
-              child: new ListTile(
-            title: Text(data[index]['data']['time_logs'][0]['activity_type']),
-            subtitle: Text(data[index]['data']['name']),
-            isThreeLine: true,
-            dense: true,
-            onLongPress: () async {
-              // print(data[index]['data']['name']);
-              tsop.stopTimesheet(data[index]['data']['name']);
-              await flutterLocalNotificationsPlugin.cancel(index);
-              print(index);
-              numberOfTimers--;
-            },
-          ));
-        },
-      ),
-    );
-  }
-}
 
 class ActivityList extends StatefulWidget {
   @override
@@ -270,7 +13,6 @@ class ActivityListState extends State<ActivityList> {
   List<String> filteredList;
   List<String> fulllist;
 
-  bool started = false;
   bool runningtimesheet = false;
 
   Future _myfutur;
@@ -288,20 +30,59 @@ class ActivityListState extends State<ActivityList> {
   @override
   void initState() {
     super.initState();
-    started = true;
+    getActivitiesfuture();
     _myfutur = getActivitiesfuture();
-    // _myfutur2 = getRunningTimesheetfuture(indexdefault, activitydefault);
   }
 
   getActivitiesfuture() async {
     var data2 = await tsop.getActivities();
     fulllist = List.from(data2);
+    filteredList = fulllist;
     return fulllist;
+  }
+
+  Future<Null> _handleRefresh() async {
+    await tsop.getActivities();
+    setState(() {});
   }
 
   getRunningTimesheetfuture(index, activity) async {
     List data = await tsop.getAllRunningTimesheetDocumentfromActivity(activity);
     return data;
+  }
+
+  void makeAlarm(int alarmnumber, String activitytype, String docname) async {
+    const androidPlatformChannelSpecifics = AndroidNotificationDetails(
+        'your channel id', 'your channel name', 'your channel description',
+        icon: 'ic_stat_name',
+        playSound: false,
+        priority: Priority.high,
+        importance: Importance.max,
+        ongoing: true,
+        autoCancel: false);
+
+    const platformChannelSpecifics =
+        NotificationDetails(android: androidPlatformChannelSpecifics);
+
+    List<ActiveNotification> activeNotifications =
+        await FlutterLocalNotificationsPlugin()
+            .resolvePlatformSpecificImplementation<
+                AndroidFlutterLocalNotificationsPlugin>()
+            .getActiveNotifications();
+
+    bool notificationthere = false;
+    for (var notification in activeNotifications) {
+      if (notification.id == alarmnumber) {
+        notificationthere = true;
+      }
+    }
+
+    if (!notificationthere) {
+      print("make Alarm!");
+      await flutterLocalNotificationsPlugin.show(
+          alarmnumber, activitytype, docname, platformChannelSpecifics,
+          payload: 'this is the payload');
+    }
   }
 
   @override
@@ -323,17 +104,20 @@ class ActivityListState extends State<ActivityList> {
                     onChanged: onItemChanged,
                   ),
                   new Expanded(
-                    child: new ListView.builder(
-                      itemCount: filteredList == null ? 0 : filteredList.length,
-                      itemBuilder: (BuildContext context, int index) =>
-                          buildbody(context, index, filteredList),
-                    ),
-                  )
+                      flex: 1,
+                      child: RefreshIndicator(
+                          child: new ListView.builder(
+                            itemCount:
+                                filteredList == null ? 0 : filteredList.length,
+                            itemBuilder: (BuildContext context, int index) =>
+                                buildbody(context, index, filteredList),
+                          ),
+                          onRefresh: _handleRefresh))
                 ],
               ),
             );
           } else {
-            return CircularProgressIndicator();
+            return LinearProgressIndicator();
           }
         });
   }
@@ -346,16 +130,18 @@ class ActivityListState extends State<ActivityList> {
     });
   }
 
-  Widget getButton(runningtimesheet, timesheet, activity) {
+  Widget getButton(index, runningtimesheet, timesheet, activity) {
     if (runningtimesheet) {
       return IconButton(
         icon: Icon(Icons.play_circle_outline),
         color: Colors.green,
         iconSize: 50,
         tooltip: 'StartTimer',
-        onPressed: () {
+        onPressed: () async {
+          await flutterLocalNotificationsPlugin.cancel(index);
           setState(() {
             tsop.stopTimesheet(timesheet[0]);
+
             runningtimesheet = false;
           });
         },
@@ -366,7 +152,7 @@ class ActivityListState extends State<ActivityList> {
         // color: Colors.green,
         iconSize: 50,
         tooltip: 'StartTimer',
-        onPressed: () async{
+        onPressed: () async {
           await tsop.createTimesheet(activity);
           setState(() {
             runningtimesheet = true;
@@ -384,8 +170,13 @@ class ActivityListState extends State<ActivityList> {
             if (snapshot.hasData) {
               if (snapshot.data.isEmpty) {
                 runningtimesheet = false;
+                flutterLocalNotificationsPlugin.cancel(index);
               } else {
                 runningtimesheet = true;
+                // print(index);
+
+                makeAlarm(
+                    index, filteredList[index], snapshot.data[0].toString());
               }
             }
             return new Card(
@@ -395,19 +186,14 @@ class ActivityListState extends State<ActivityList> {
               isThreeLine: true,
               dense: true,
               trailing: Row(mainAxisSize: MainAxisSize.min, children: <Widget>[
-                getButton(runningtimesheet, snapshot.data, filteredlist[index])
+                getButton(
+                    index, runningtimesheet, snapshot.data, filteredlist[index])
               ]),
               onTap: () {},
-              // onLongPress: () async {
-              //   // print(data[index]['data']['name']);
-              //   tsop.stopTimesheet(data[index]['data']['name']);
-              //   await flutterLocalNotificationsPlugin.cancel(index);
-              //   print(index);
-              //   numberOfTimers--;
-              // },
+              onLongPress: () async {},
             ));
           } else {
-            return CircularProgressIndicator();
+            return LinearProgressIndicator();
           }
         });
   }
