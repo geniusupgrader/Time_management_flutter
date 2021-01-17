@@ -10,44 +10,89 @@ class ActivityList extends StatefulWidget {
 
 class ActivityListState extends State<ActivityList> {
   // List data;
-  List<String> filteredList;
-  List<String> fulllist;
+  List<String> filteredList = [];
+  List<String> fulllist = [];
+  List<String> sortedlist = [];
+
+List data;
 
   bool runningtimesheet = false;
 
-  Future _myfutur;
+  Future _myfutur2;
   // Future _myfutur2;
 
   int indexdefault = 0;
   String activitydefault = "0";
-
-  void togglebutton(runningtimesheet) {
-    runningtimesheet = !runningtimesheet;
-  }
 
   final TextEditingController controller = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    getActivitiesfuture();
-    _myfutur = getActivitiesfuture();
+    _myfutur2 = getActivitiesfuturewhole();
   }
 
-  getActivitiesfuture() async {
+
+  getActivitiesfuturewhole() async {
     var data2 = await tsop.getActivities();
     fulllist = List.from(data2);
     filteredList = fulllist;
-    return fulllist;
+
+// first get all running timesheets
+    var allrunningtimesheets = await tsop.getRunningTimesheetsAsNameList();
+    // print(uiae);
+
+flutterLocalNotificationsPlugin.cancelAll();
+// flutterLocalNotificationsPlugin.cancel(index);
+
+// find the Activity_type:
+    for (var entry in allrunningtimesheets) {
+      var res = await tsop.getSpecificTimesheetDocument(entry);
+      // and when it is there...
+      if (res['data']['time_logs'][0].containsKey('activity_type')) {
+        // put it in an temporary list
+        sortedlist.add(res['data']['time_logs'][0]['activity_type']);
+      }
+    }
+    // outside the for loop, move all entries in sortedlist to above
+    // print("sortedlist");
+    // print(sortedlist);
+    // print("sortedlist,reversed");
+    // print(sortedlist.reversed);
+
+var revsero = sortedlist.reversed.toList();
+// print(revsero);
+
+    for (var entry in sortedlist) {
+      // print("sortedlist.indexOf(entry)");
+      // print(sortedlist.indexOf(entry));
+      // print("resero.indexOf(entry)");
+      // print(revsero.indexOf(entry));
+      // print("entrty");
+      // print(entry);
+      // print("last");
+      // print(sortedlist.indexOf(sortedlist.last));
+
+makeAlarm(revsero.indexOf(entry), entry, "dtrn");
+
+      filteredList.remove(entry);
+      filteredList.insert(0, entry);
+    }
+    // empty the sortedlist for the next call somewhen
+    sortedlist = [];
+
+    // return the main list, which is used in the build method
+    return filteredList;
   }
 
   Future<Null> _handleRefresh() async {
-    await tsop.getActivities();
-    setState(() {});
+    setState(() {
+      _myfutur2 = getActivitiesfuturewhole();
+    });
   }
 
   getRunningTimesheetfuture(index, activity) async {
-    List data = await tsop.getAllRunningTimesheetDocumentfromActivity(activity);
+    data = await tsop.getAllRunningTimesheetDocumentfromActivity(activity);
     return data;
   }
 
@@ -88,7 +133,7 @@ class ActivityListState extends State<ActivityList> {
   @override
   Widget build(BuildContext context) {
     return FutureBuilder(
-        future: _myfutur,
+        future: _myfutur2,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.done) {
             return new Scaffold(
@@ -96,17 +141,14 @@ class ActivityListState extends State<ActivityList> {
                 children: <Widget>[
                   new TextField(
                     controller: controller,
-                    // onSubmitted: (text) {
-                    //   fulllist.add("neger");
-                    //   controller.clear();
-                    //   setState(() {});
-                    // },
+                    // onSubmitted: (text) { },
                     onChanged: onItemChanged,
                   ),
                   new Expanded(
                       flex: 1,
                       child: RefreshIndicator(
                           child: new ListView.builder(
+                            shrinkWrap: true,
                             itemCount:
                                 filteredList == null ? 0 : filteredList.length,
                             itemBuilder: (BuildContext context, int index) =>
@@ -130,39 +172,7 @@ class ActivityListState extends State<ActivityList> {
     });
   }
 
-  Widget getButton(index, runningtimesheet, timesheet, activity) {
-    if (runningtimesheet) {
-      return IconButton(
-        icon: Icon(Icons.play_circle_outline),
-        color: Colors.green,
-        iconSize: 50,
-        tooltip: 'StartTimer',
-        onPressed: () async {
-          await flutterLocalNotificationsPlugin.cancel(index);
-          setState(() {
-            tsop.stopTimesheet(timesheet[0]);
-
-            runningtimesheet = false;
-          });
-        },
-      );
-    } else {
-      return IconButton(
-        icon: Icon(Icons.play_circle_outline),
-        // color: Colors.green,
-        iconSize: 50,
-        tooltip: 'StartTimer',
-        onPressed: () async {
-          await tsop.createTimesheet(activity);
-          setState(() {
-            runningtimesheet = true;
-          });
-        },
-      );
-    }
-  }
-
-  Widget buildbody(BuildContext ctxt, int index, filteredlist) {
+  Widget buildbody(BuildContext ctxt, int index, List filteredlist) {
     return FutureBuilder(
         future: getRunningTimesheetfuture(index, filteredlist[index]),
         builder: (context, snapshot) {
@@ -170,25 +180,26 @@ class ActivityListState extends State<ActivityList> {
             if (snapshot.hasData) {
               if (snapshot.data.isEmpty) {
                 runningtimesheet = false;
-                flutterLocalNotificationsPlugin.cancel(index);
+                // flutterLocalNotificationsPlugin.cancel(index);
               } else {
                 runningtimesheet = true;
-                // print(index);
 
-                makeAlarm(
-                    index, filteredList[index], snapshot.data[0].toString());
               }
             }
             return new Card(
                 child: new ListTile(
-              title: Text(filteredList[index].toString()),
-              subtitle: Text(runningtimesheet.toString()),
-              isThreeLine: true,
-              dense: true,
-              trailing: Row(mainAxisSize: MainAxisSize.min, children: <Widget>[
-                getButton(
-                    index, runningtimesheet, snapshot.data, filteredlist[index])
-              ]),
+              title: Text(filteredList[index].toString(),
+                  style: TextStyle(fontSize: 18)),
+              // subtitle: Text(runningtimesheet.toString()),
+              isThreeLine: false,
+              dense: false,
+              trailing: new Row(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: <Widget>[
+                    getButton(index, runningtimesheet, snapshot.data, filteredlist[index])
+                  ]),
               onTap: () {},
               onLongPress: () async {},
             ));
@@ -196,5 +207,55 @@ class ActivityListState extends State<ActivityList> {
             return LinearProgressIndicator();
           }
         });
+  }
+
+  Widget getButton(index, runningtimesheet, timesheet, activity) {
+    if (runningtimesheet) {
+      return new IconButton(
+        icon: Icon(Icons.play_circle_outline),
+        color: Colors.green,
+        iconSize: 50,
+        padding: EdgeInsets.all(0),
+        tooltip: 'StartTimer',
+        onPressed: () async {
+          // print(timesheet[0]);
+          await tsop.stopTimesheet(timesheet[0]);
+          // print(index);
+          setState(() {
+            runningtimesheet = false;
+            _myfutur2 = getActivitiesfuturewhole();
+          flutterLocalNotificationsPlugin.cancel(index);
+
+          });
+        },
+      );
+    } else {
+      return new IconButton(
+        icon: Icon(Icons.play_circle_outline),
+        // color: Colors.green,
+        iconSize: 50,
+        padding: EdgeInsets.all(0),
+        tooltip: 'StartTimer',
+        onPressed: () async {
+                //           print("index");
+                // print(index);
+                // print("snapshot.data[0].toString()");
+                // print(data.toString());
+                // print("filteredList[index]");
+                // print(filteredList[index]);
+
+                          // makeAlarm(index, filteredList[index], data.toString());
+// print("activity");
+// print(activity);
+// print("filteredList");
+// print(filteredList);
+          tsop.createTimesheet(activity);
+          setState(() {
+            runningtimesheet = true;
+            _myfutur2 = getActivitiesfuturewhole();
+          });
+        },
+      );
+    }
   }
 }

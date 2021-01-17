@@ -4,11 +4,21 @@ import 'package:time/altercode.dart' as alt;
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:universal_io/io.dart';
+
+
+
 
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
     FlutterLocalNotificationsPlugin();
 
+
 void main() async {
+
+
+
+print(Platform.operatingSystem);
+
 // ------------- Initializations for Notifications (Only Android for now) ----------------
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -127,155 +137,37 @@ class DefaultTabControllerWithAppbar extends StatelessWidget {
 
 
 
-class UserList extends StatefulWidget {
+class MyApp3 extends StatefulWidget {
   @override
-  State<StatefulWidget> createState() {
-    return _UserListState();
-  }
+  _MyApp3State createState() => _MyApp3State();
 }
 
-class _UserListState extends State<UserList> {
-  final String apiUrl = "https://randomuser.me/api/?results=10";
-
-  List<dynamic> _users = [];
-
-  void fetchUsers() async {
-    var result = await http.get(apiUrl);
-    setState(() {
-      _users = json.decode(result.body)['results'];
-    });
-  }
-
-  String _name(dynamic user) {
-    return user['name']['title'] +
-        " " +
-        user['name']['first'] +
-        " " +
-        user['name']['last'];
-  }
-
-  String _location(dynamic user) {
-    return user['location']['country'];
-  }
-
-  String _age(Map<dynamic, dynamic> user) {
-    return "Age: " + user['dob']['age'].toString();
-  }
-
-  Widget _buildList() {
-    return _users.length != 0
-        ? RefreshIndicator(
-            child: ListView.builder(
-                padding: EdgeInsets.all(8),
-                itemCount: _users.length,
-                itemBuilder: (BuildContext context, int index) {
-                  return Card(
-                    child: Column(
-                      children: <Widget>[
-                        ListTile(
-                          leading: CircleAvatar(
-                              radius: 30,
-                              backgroundImage: NetworkImage(
-                                  _users[index]['picture']['large'])),
-                          title: Text(_name(_users[index])),
-                          subtitle: Text(_location(_users[index])),
-                          trailing: Text(_age(_users[index])),
-                        )
-                      ],
-                    ),
-                  );
-                }),
-            onRefresh: _getData,
-          )
-        : Center(child: CircularProgressIndicator());
-  }
-
-  Future<void> _getData() async {
-    setState(() {
-      fetchUsers();
-    });
-  }
-
-  @override
-  void initState() {
+class _MyApp3State extends State<MyApp3> {
+  List<int> ids = [];
+  initState() {
     super.initState();
-    fetchUsers();
+    for (var i = 0; i < 100; i++) {
+      ids.add(i);
+    }
+    new Future.delayed(Duration(seconds: 3)).then((_) {
+      setState(() {
+        ids[4] = 1000;
+      });
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('User List'),
-      ),
-      body: Container(
-        child: _buildList(),
+    return MaterialApp(
+      home: Scaffold(
+        appBar: AppBar(),
+        body: ListView.builder(
+          itemCount: ids.length,
+          itemBuilder: (context, idx) {
+            return ListTile(title: Text('${ids[idx]}'));
+          },
+        ),
       ),
     );
   }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-    class MyApp3 extends StatefulWidget {
-      @override
-      State<StatefulWidget> createState() => MyApp3State();
-    }
-
-    class MyApp3State extends State<MyApp3> {
-      List<int> items = List.generate(16, (i) => i);
-
-      Future<Null> _handleRefresh() async {
-        await Future.delayed(Duration(seconds: 5), () {
-          print('refresh');
-          setState(() {
-            items.clear();
-            items = List.generate(40, (i) => i);
-          });
-        });
-      }
-
-      @override
-      Widget build(BuildContext context) {
-        return Scaffold(
-          appBar: AppBar(
-            title: Text("Refresh"),
-          ),
-          body: Column(
-            children: <Widget>[
-              Expanded(
-                flex: 1,
-                child: RefreshIndicator(
-                  child: ListView.builder(
-                    itemCount: items.length,
-                    shrinkWrap: true,
-                    itemBuilder: (context, index) {
-                      return ListTile(
-                        title: Text("Index$index"),
-                      );
-                    },
-                  ),
-                  onRefresh: _handleRefresh,
-                ),
-              )
-            ],
-          ),
-        );
-      }
-    }
-
-
-
-
-
-
-

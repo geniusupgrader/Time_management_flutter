@@ -3,8 +3,25 @@ import 'package:time/main.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:time/timesheetoperations.dart' as tsop;
 import 'package:flutter_typeahead/flutter_typeahead.dart';
-import 'package:time/data.dart';
 
+
+getActivitiesAsList() async {
+  var activities = await tsop.getActivities();
+  return activities;
+}
+
+class BackendService {
+  static Future getSuggestions(String query) async {
+    // await Future.delayed(Duration(seconds: 1));
+
+    var activities = await getActivitiesAsList();
+    var activitieslist = List<String>.from(activities);
+
+    activitieslist
+        .retainWhere((s) => s.toLowerCase().contains(query.toLowerCase()));
+    return activitieslist;
+  }
+}
 
 var numberOfTimers = 0;
 
@@ -22,23 +39,23 @@ class MyCustomFormState extends State<MyCustomForm> {
   String _selectedCity;
   var mrTimesheet;
 
-  void makeAlarm(int alarmnumber, String activitytype, String docname) async {
-    const androidPlatformChannelSpecifics = AndroidNotificationDetails(
-        'your channel id', 'your channel name', 'your channel description',
-        icon: 'ic_stat_name',
-        playSound: false,
-        priority: Priority.high,
-        importance: Importance.max,
-        ongoing: true,
-        autoCancel: false);
+  // void makeAlarm(int alarmnumber, String activitytype, String docname) async {
+  //   const androidPlatformChannelSpecifics = AndroidNotificationDetails(
+  //       'your channel id', 'your channel name', 'your channel description',
+  //       icon: 'ic_stat_name',
+  //       playSound: false,
+  //       priority: Priority.high,
+  //       importance: Importance.max,
+  //       ongoing: true,
+  //       autoCancel: false);
 
-    const platformChannelSpecifics =
-        NotificationDetails(android: androidPlatformChannelSpecifics);
+  //   const platformChannelSpecifics =
+  //       NotificationDetails(android: androidPlatformChannelSpecifics);
 
-    await flutterLocalNotificationsPlugin.show(
-        alarmnumber, activitytype, docname, platformChannelSpecifics,
-        payload: 'this is the payload');
-  }
+  //   await flutterLocalNotificationsPlugin.show(
+  //       alarmnumber, activitytype, docname, platformChannelSpecifics,
+  //       payload: 'this is the payload');
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -88,7 +105,7 @@ class MyCustomFormState extends State<MyCustomForm> {
                   var activityname =
                       res['data']['time_logs'][0]['activity_type'];
 
-                  makeAlarm(numberOfTimers, activityname, mrTimesheet);
+                  // makeAlarm(numberOfTimers, activityname, mrTimesheet);
                   print(numberOfTimers);
                   numberOfTimers++;
                 }
